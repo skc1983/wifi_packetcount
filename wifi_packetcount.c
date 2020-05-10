@@ -6,7 +6,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <linux/bpf.h>
-#include <linux/filter.h>
 #include <linux/unistd.h>
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
@@ -186,7 +185,7 @@ int main(int argc, char **argv)
 {
     char *interface = "wlan0";
     int sock, map_fd, prog_fd, key;
-    long long value = 0, tcp_cnt, udp_cnt;
+    long long value = 0, tcp_cnt, udp_cnt, icmp_cnt;
 
     if (argc > 1)
         interface = argv[1];
@@ -224,15 +223,16 @@ int main(int argc, char **argv)
     }
 
     sock = open_raw_sock(interface);
-    assert(setsockopt(sock, SOL_SOCKET, SO_ATTACH_BPF, &prog_fd,
-                      sizeof(prog_fd)) == 0);
+    setsockopt(sock, SOL_SOCKET, SO_ATTACH_BPF, &prog_fd,
+                      sizeof(prog_fd)) == 0;
 
     for (;;) {
         key = IPPROTO_TCP;
         assert(bpf_map_lookup_elem(map_fd, &key, &tcp_cnt) == 0);
         key = IPPROTO_UDP;
         assert(bpf_map_lookup_elem(map_fd, &key, &udp_cnt) == 0);
-        printf("TCP %lld UDP %lld packets\n", tcp_cnt, udp_cnt);
+	printf("TCP %lld UDP %lld ICMP %lld packets\n",
+		       tcp_cnt, udp_cnt, icmp_cnt);        
         sleep(1);
     }
 
